@@ -66,114 +66,112 @@ If you don’t have signatures set up, proceed to “Adding your SSH private key
 
 This uses several commands. To get these set up, add this script to your path as `git-pack-flow` and set it as executable.
 
-``` bash
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-main()
-{
-    if [[ $# -eq 0 ]]; then
-        usage
-        exit 1
-    fi
-
-    while true; do
-        case "$1" in
-            -d|--debug)
-                set -x
-                shift ;;
-            -h|--help)
-                usage; exit 0 ;;
-            *) break ;;
-        esac
-    done
-
-    case $1 in
-        "load")
-            shift
-            cmd_load "$@"
-            ;;
-        "save")
-            shift
-            cmd_save "$@"
-            ;;
-        *)
-            echo "Invalid command provided."
+    #!/usr/bin/env bash
+    
+    set -euo pipefail
+    
+    main()
+    {
+        if [[ $# -eq 0 ]]; then
             usage
             exit 1
-    esac
-}
-
-cmd_load()
-{
-    local incoming_branch
-    incoming_branch="$(
-        git bundle unbundle "$1" | \
-            sed 's_.*refs/heads/__'
-    )"
-
-    if git branch | grep -q "$incoming_branch"; then
-        git checkout "$incoming_branch"
-    else
-        git checkout main
-    fi
-
-    git fetch "$1" "$incoming_branch":
-    git merge FETCH_HEAD
-
-    echo "Loaded $incoming_branch"
-}
-
-cmd_save()
-{
-    local branch
-    branch="$(git rev-parse --abbrev-ref HEAD)"
-
-    local escaped_branch
-    escaped_branch="$(
-        echo "$branch" | sed 's/[\/]/--/g'
-    )"
-
-    local now
-    now="$(date -u "+%Y%m%dT%H%M%SZ")"
-
-    local dest="$1/${escaped_branch}__${now}.pack"
-
-    local commits
-
-    if [[ "$branch" == "main" ]]; then
-        commits="main"
-    else
-        commits="main..${branch}"
-    fi
-
-    git bundle create "$dest" "$commits"
-
-    echo "Created bundle for branch \"$branch\":"
-    echo "$dest"
-}
-
-usage()
-{
-    echo -e "Usage: $(basename "$0") [options] [command]"
-    echo -e ""
-
-    echo -e "Options include:"
-    echo -e "   -d --debug \t\t print commands in script as they"
-    echo -e "              \t\t run"
-    echo -e "   -h --help  \t\t print this help"
-    echo -e ""
-
-    echo -e "Commands:"
-    echo -e "   save [dir] \t\t creates a bundle for the current"
-    echo -e "              \t\t branch in dir"
-    echo -e "   load [file]\t\t loads a branch bundle file"
-    echo -e ""
-}
-
-main "$@"
-```
+        fi
+    
+        while true; do
+            case "$1" in
+                -d|--debug)
+                    set -x
+                    shift ;;
+                -h|--help)
+                    usage; exit 0 ;;
+                *) break ;;
+            esac
+        done
+    
+        case $1 in
+            "load")
+                shift
+                cmd_load "$@"
+                ;;
+            "save")
+                shift
+                cmd_save "$@"
+                ;;
+            *)
+                echo "Invalid command provided."
+                usage
+                exit 1
+        esac
+    }
+    
+    cmd_load()
+    {
+        local incoming_branch
+        incoming_branch="$(
+            git bundle unbundle "$1" | \
+                sed 's_.*refs/heads/__'
+        )"
+    
+        if git branch | grep -q "$incoming_branch"; then
+            git checkout "$incoming_branch"
+        else
+            git checkout -b "$incoming_branch"
+        fi
+    
+        git fetch "$1" "$incoming_branch":
+        git merge FETCH_HEAD
+    
+        echo "Loaded $incoming_branch"
+    }
+    
+    cmd_save()
+    {
+        local branch
+        branch="$(git rev-parse --abbrev-ref HEAD)"
+    
+        local escaped_branch
+        escaped_branch="$(
+            echo "$branch" | sed 's/[\/]/--/g'
+        )"
+    
+        local now
+        now="$(date -u "+%Y%m%dT%H%M%SZ")"
+    
+        local dest="$1/${escaped_branch}__${now}.pack"
+    
+        local commits
+    
+        if [[ "$branch" == "main" ]]; then
+            commits="main"
+        else
+            commits="main..${branch}"
+        fi
+    
+        git bundle create "$dest" "$commits"
+    
+        echo "Created bundle for branch \"$branch\":"
+        echo "$dest"
+    }
+    
+    usage()
+    {
+        echo -e "Usage: $(basename "$0") [options] [command]"
+        echo -e ""
+    
+        echo -e "Options include:"
+        echo -e "   -d --debug \t\t print commands in script as they"
+        echo -e "              \t\t run"
+        echo -e "   -h --help  \t\t print this help"
+        echo -e ""
+    
+        echo -e "Commands:"
+        echo -e "   save [dir] \t\t creates a bundle for the current"
+        echo -e "              \t\t branch in dir"
+        echo -e "   load [file]\t\t loads a branch bundle file"
+        echo -e ""
+    }
+    
+    main "$@"
 
 ## Lead: Setup
 
